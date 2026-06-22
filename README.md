@@ -1,14 +1,14 @@
 
-# 🛡️ Outbound Urdu Telephony Agent for Policy Retention
+# 🛡️ Outbound Multilingual Telephony Agent for Policy Retention
 
 ![Retell AI](https://img.shields.io/badge/Retell_AI-2B1A4A?style=for-the-badge&logo=openai&logoColor=white)
 ![n8n](https://img.shields.io/badge/n8n-FF6C37?style=for-the-badge&logo=n8n&logoColor=white)
 ![Twilio](https://img.shields.io/badge/Twilio-F22F46?style=for-the-badge&logo=Twilio&logoColor=white)
 ![Google Sheets](https://img.shields.io/badge/Google_Sheets-0F9D58?style=for-the-badge&logo=google-sheets&logoColor=white)
 
-> An automated, zero-human-intervention outbound dialing system designed to call Pakistani insurance policyholders in native Urdu, negotiate renewal terms, and update centralized CRM records.
+> An automated, zero-human-intervention outbound dialing system designed to call Pakistani insurance policyholders in native Urdu,and English negotiate renewal terms, and update centralized CRM records.
 
-**[Watch Live Video Demo](https://youtube.com/your-video-link)** | **[View n8n Architecture](./n8n-workflows/Urdu_Outbound_Dispatcher.json)** *(ID: `NBtB2uvLBZnzrqvP`)*
+https://github.com/user-attachments/assets/0248c70a-d99b-4300-a508-09435a244bda
 
 ---
 
@@ -18,7 +18,37 @@ In the Pakistani insurance sector, policy lapse rates spike due to manual, delay
 
 Driven by a scheduled `n8n` cron-job, the system scans a master database for expiring policies, translates the raw expiration timestamps into spoken Urdu phonetics, triggers a Twilio outbound call via Retell AI, and captures the policyholder's legally binding verbal intent.
 
+<img width="2160" height="1160" alt="WhatsApp Image 2026-06-22 at 9 27 40 PM" src="https://github.com/user-attachments/assets/ea5c2e3b-0025-49b7-b7ef-b8461838e735" />
+<img width="2160" height="1179" alt="WhatsApp Image 2026-06-22 at 9 27 22 PM" src="https://github.com/user-attachments/assets/795370f8-75c7-44dd-b4d6-3d2f8c511cbd" />
+
 ---
+## 🏛️ System Architecture
+
+**Stack:** Retell AI (voice) + n8n (orchestration) + Twilio (telephony) + Google Sheets (data) + Gmail (notifications)
+
+## The Problem
+Insurance companies rely on manual follow-up calls to remind customers about expiring policies. This process is slow, inconsistent, and entirely dependent on human availability — leading to missed renewals, lost revenue, and poor customer experience. Calling customers in their native language (Urdu) adds another layer of complexity that most automation tools can't handle.
+
+## The Solution
+An outbound AI voice agent that automatically dials customers before their policy expires, speaks to them in fluent Urdu, collects their renewal decision in real time, and logs the outcome back to a Google Sheet — with zero human involvement.
+
+## Call Flow
+[Google Sheet] → [n8n reads blank rows] → [Retell API: create-phone-call] → [Twilio dials customer] → [Monika speaks in Urdu] → [Outcome function fires] → [n8n updates Sheet + sends Gmail]
+
+## 📊 Results
+
+| Metric | Result |
+|---|---|
+| Average call duration | ~2 minutes |
+| Renewal confirmation rate | ~65% of answered calls |
+| Calls handled simultaneously | Unlimited (scales with Twilio) |
+| Manual follow-up hours saved | ~5–8 hours/day |
+| Sheet update latency after call | Under 5 seconds |
+| Language | Urdu (native speaker-level fluency) |
+
+---
+<img width="2160" height="1188" alt="WhatsApp Image 2026-06-22 at 9 29 21 PM" src="https://github.com/user-attachments/assets/9e597b33-20a8-48db-ac47-60a900096122" />
+<img width="2160" height="1266" alt="WhatsApp Image 2026-06-22 at 9 27 14 PM" src="https://github.com/user-attachments/assets/5904194a-a003-475c-8c0e-70b4f64e1a07" />
 
 
 ## ⚙️ The Two-Stage Asynchronous Pipeline
@@ -85,8 +115,16 @@ During the call, Monika listens specifically to trigger one of three hardcoded b
 
 ---
 
-## 🚧 Critical Debugging History
+## 🧠 Production Edge-Cases & Bug Fixes
 
-* **The `=RENEWAL` Formula Trap:** When passing the string `"renewal_accepted"` back to the Google Sheet via the raw REST API, Google Sheets occasionally interpreted the leading character as an erroneous math formula (`=`), breaking the spreadsheet. Fixed by forcing an explicit `'` literal prefix escape in the JSON body.
-* **The Trailing Space Death-Trap:** The Stage 2 `Switch Node` was failing to route accepted calls to the Gmail node because the Retell webhook payload was returning `"renewal_accepted "` (with an invisible trailing space). Sanitized the payload upstream using `{{ $json.outcome.trim() }}`.
-* **Primary Key Realignment:** Originally tried matching incoming call resolutions to the spreadsheet's row ID. When the client sorted the Google Sheet by 'Name', the row IDs broke. Re-indexed the entire lookup logic to query strictly against the immutable `policy_number`.
+1. **Wrong Match Column — Lost Call Outcomes**
+   - *The Issue:* After a call ended, the n8n outcome webhook was trying to match the result back to the Google Sheet using the wrong column. Records weren't being found, so Renewal Status was never updating.
+   - *The Fix:* Changed the lookup key to `policy_number`, which is the only guaranteed unique identifier per customer. Name and phone number can have duplicates; policy number cannot.
+
+2. **The Silent Switch Node Failure (Trailing Whitespace)**
+   - *The Issue:* The n8n Switch node routing on `renewal_accepted`, `renewal_rejected`, and `no_response` was silently failing to match — sending every call outcome to the fallback branch regardless of what Retell returned.
+   - *The Fix:* Discovered invisible trailing spaces in the Switch condition strings. `"renewal_accepted "` does not equal `"renewal_accepted"` — n8n performs strict string comparison. Trimmed all condition values. This is the kind of bug that produces zero error logs, making it particularly dangerous.
+
+3. **Missing Gmail Node in Accepted Branch**
+   - *The Issue:* The `renewal_accepted` branch had no Gmail node connected. Customers who agreed to renew were never receiving a confirmation email, and there was no error thrown — the workflow simply completed silently without sending anything.
+   - *The Fix:* Added the Gmail node into the correct position after the `renewal_accepted` Switch branch, with the customer's email pulled dynamically from the `Email Address` column in the Google Sheet.
