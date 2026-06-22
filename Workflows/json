@@ -1,0 +1,695 @@
+{
+  "name": "Outbound Insurance AI Voice Agent",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -144,
+        0
+      ],
+      "id": "5e16d860-54e7-45e0-830d-a4defc61a97b",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "18lP864nhi0ULC3c-DmGUV8nP37oS8_6m-zC51ugxb4o",
+          "mode": "list",
+          "cachedResultName": "Insurance List",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/18lP864nhi0ULC3c-DmGUV8nP37oS8_6m-zC51ugxb4o/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Insurance",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/18lP864nhi0ULC3c-DmGUV8nP37oS8_6m-zC51ugxb4o/edit#gid=0"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "renewal_status",
+              "lookupValue": "="
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        64,
+        0
+      ],
+      "id": "2d2377f5-a9b9-4032-a877-081aa883655a",
+      "name": "Get row(s) in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "dzy1Wpcxox5u818B",
+          "name": "Google Sheets account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        272,
+        0
+      ],
+      "id": "674a4580-2804-4690-8221-7944c54186b7",
+      "name": "Loop Over Items"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "name": "Replace Me",
+      "typeVersion": 1,
+      "position": [
+        480,
+        208
+      ],
+      "id": "a1898705-bd83-4d4a-a763-6d054aa628c7",
+      "placeholder": true
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.retellai.com/v2/create-phone-call",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer key"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"from_number\": \"+16412166808\",\n  \"to_number\": \"{{ $json.phone_number }}\",\n  \"call_type\": \"phone_call\",\n  \"override_agent_id\": \"agent_d68ac9571fe68ef716861744df\",\n  \"retell_llm_dynamic_variables\": {\n    \"full_name\": \"{{ $json.full_name }}\",\n    \"policy_number\": \"{{ $json.policy_number }}\",\n    \"policy_expiry_date\": \"{{ $json.policy_expiry_date }}\",\n    \"email_address\": \"{{ $json.email_address }}\"\n  }\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        480,
+        0
+      ],
+      "id": "9d8ea03b-fe40-44e5-859f-816c708264cd",
+      "name": "Retell Outbound"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "retellai",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -176,
+        752
+      ],
+      "id": "1f1e6f2f-b337-4095-9d2c-a121a06de8a7",
+      "name": "Webhook",
+      "webhookId": "85e3bbec-3058-44ce-97d3-b8d0e0480a73"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.body.action }}",
+                    "rightValue": "=renewal_accepted",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "774b6959-ed73-497f-9df8-55ac23abfe86"
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "c1fe3af5-6354-47bb-867b-a445e42ad5a3",
+                    "leftValue": "={{ $json.body.action }}",
+                    "rightValue": "renewal_rejected",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "3dc5227c-4d5a-4279-a121-187fb1be2db0",
+                    "leftValue": "={{ $json.body.action }}",
+                    "rightValue": "no_response ",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        16,
+        736
+      ],
+      "id": "91f2850e-5e19-4d41-bdc3-386838801e46",
+      "name": "Switch"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "18lP864nhi0ULC3c-DmGUV8nP37oS8_6m-zC51ugxb4o",
+          "mode": "list",
+          "cachedResultName": "Insurance List",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/18lP864nhi0ULC3c-DmGUV8nP37oS8_6m-zC51ugxb4o/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Insurance",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/18lP864nhi0ULC3c-DmGUV8nP37oS8_6m-zC51ugxb4o/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "renewal_status": "accepted"
+          },
+          "matchingColumns": [
+            "renewal_status"
+          ],
+          "schema": [
+            {
+              "id": "full_name",
+              "displayName": "full_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "policy_number",
+              "displayName": "policy_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "policy_expiry_date",
+              "displayName": "policy_expiry_date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "email_address",
+              "displayName": "email_address",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "phone_number",
+              "displayName": "phone_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "renewal_status",
+              "displayName": "renewal_status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "row_number",
+              "displayName": "row_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "readOnly": true,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        320,
+        560
+      ],
+      "id": "b959940c-7dbc-42d2-a97e-2c6f15ac7957",
+      "name": "renewal_accepted",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "dzy1Wpcxox5u818B",
+          "name": "Google Sheets account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "18lP864nhi0ULC3c-DmGUV8nP37oS8_6m-zC51ugxb4o",
+          "mode": "list",
+          "cachedResultName": "Insurance List",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/18lP864nhi0ULC3c-DmGUV8nP37oS8_6m-zC51ugxb4o/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Insurance",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/18lP864nhi0ULC3c-DmGUV8nP37oS8_6m-zC51ugxb4o/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "renewal_status": "rejected."
+          },
+          "matchingColumns": [
+            "renewal_status"
+          ],
+          "schema": [
+            {
+              "id": "full_name",
+              "displayName": "full_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "policy_number",
+              "displayName": "policy_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "policy_expiry_date",
+              "displayName": "policy_expiry_date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "email_address",
+              "displayName": "email_address",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "phone_number",
+              "displayName": "phone_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "renewal_status",
+              "displayName": "renewal_status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "row_number",
+              "displayName": "row_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "readOnly": true,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        320,
+        752
+      ],
+      "id": "dc6aa076-d54a-443e-8f04-49e180a6f0c4",
+      "name": "renewal_rejected",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "dzy1Wpcxox5u818B",
+          "name": "Google Sheets account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "18lP864nhi0ULC3c-DmGUV8nP37oS8_6m-zC51ugxb4o",
+          "mode": "list",
+          "cachedResultName": "Insurance List",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/18lP864nhi0ULC3c-DmGUV8nP37oS8_6m-zC51ugxb4o/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Insurance",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/18lP864nhi0ULC3c-DmGUV8nP37oS8_6m-zC51ugxb4o/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "renewal_status": "="
+          },
+          "matchingColumns": [
+            "renewal_status"
+          ],
+          "schema": [
+            {
+              "id": "full_name",
+              "displayName": "full_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "policy_number",
+              "displayName": "policy_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "policy_expiry_date",
+              "displayName": "policy_expiry_date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "email_address",
+              "displayName": "email_address",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "phone_number",
+              "displayName": "phone_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "renewal_status",
+              "displayName": "renewal_status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "row_number",
+              "displayName": "row_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "readOnly": true,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        320,
+        944
+      ],
+      "id": "450854c1-6af3-48c9-abbf-d5ece39f8767",
+      "name": "no_response",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "dzy1Wpcxox5u818B",
+          "name": "Google Sheets account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        528,
+        560
+      ],
+      "id": "6d951690-e0dd-4945-b995-5d24e71f8a93",
+      "name": "Send a message",
+      "webhookId": "53a2c96e-eb9c-4904-b852-ca2581edd283",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "RPgomBNG2IO2EQVg",
+          "name": "Gmail account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "Get row(s) in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get row(s) in sheet": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items": {
+      "main": [
+        [
+          {
+            "node": "Retell Outbound",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Replace Me",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Replace Me": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Retell Outbound": {
+      "main": [
+        []
+      ]
+    },
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "renewal_accepted",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "renewal_rejected",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "no_response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "renewal_accepted": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "5233b288-ceb1-4c33-972f-e4c8c3cf30e6",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "151dc43afac0b89a6e1b1395841472d835c7bd7b028fc014823ed1c8f353d526"
+  },
+  "id": "NBtB2uvLBZnzrqvP",
+  "tags": []
+}
