@@ -7,6 +7,7 @@
 ![Google Sheets](https://img.shields.io/badge/Google_Sheets-0F9D58?style=for-the-badge&logo=google-sheets&logoColor=white)
 
 > An automated, zero-human-intervention outbound dialing system designed to call Pakistani insurance policyholders in native Urdu,and English negotiate renewal terms, and update centralized CRM records.
+<img width="1536" height="1024" alt="Blueprint" src="https://github.com/user-attachments/assets/bca6f7e4-70fc-4173-bd09-dbbaa4630971" />
 
 https://github.com/user-attachments/assets/0248c70a-d99b-4300-a508-09435a244bda
 
